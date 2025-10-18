@@ -5,9 +5,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  PROJECT_DIR: .   # set to your folder, e.g. "android" or "LM Arena WebApp"
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.PROJECT_DIR }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,8 +23,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
+      - name: Ensure Gradle wrapper exists (generate if missing)
+        run: |
+          if [ ! -f gradlew ]; then
+            echo "Gradle wrapper not found. Generating..."
+            sudo apt-get update
+            sudo apt-get install -y gradle
+            gradle wrapper --gradle-version 8.7
+          fi
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
       - name: Build Debug APK
         run: ./gradlew clean assembleDebug
@@ -27,4 +42,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
